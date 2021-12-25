@@ -202,9 +202,12 @@ function drawDerives(d, p, did) {
     const ul = document.createElement("ul")
     ul.setAttribute("class", "inn_line")
     color = "#000"
-    for(x of d) {
+    did += d.length - 1
+    for(x of d.reverse()) {
         if(isTerminal(x) && x != 'e') {
             color = "blue"
+        } else {
+            color = "black"
         }
         const li = document.createElement("li")
         li.setAttribute("id", did)
@@ -222,7 +225,7 @@ function drawDerives(d, p, did) {
         a.appendChild(div)
         li.appendChild(a)
         ul.appendChild(li)
-        did += 1
+        did -= 1
     }
     tree.appendChild(ul)
 }
@@ -239,24 +242,102 @@ function printAccept() {
     d.style.background = "green"
 }
 
+function sleep(milliseconds) {
+    let timeStart = new Date().getTime();
+    while (true) {
+      let elapsedTime = new Date().getTime() - timeStart;
+      if (elapsedTime > milliseconds) {
+        break;
+      }
+    }
+}
+
 function printProduction(x) {
     const d = document.getElementById("productions")
     const p = document.createElement("p")
     p.textContent = x
     d.appendChild(p)
+    // sleep(5000);
 }
 
-// drawStart('Z')
-// drawDerives(['A', 'B'], 'Z')
-// drawDerives(['A', 'B', 'C'], 'B')
+function printcfg(cfg) {    
+    const d = document.getElementById("leftrecur")
+    d.innerHTML = ``
+    const h = document.createElement("h5")
+    h.innerHTML = "After Removing Left Recursion"
+    d.appendChild(h)
+    for(x of cfg) {
+        const p = document.createElement("p")
+        p.textContent = x
+        d.appendChild(p)
+    }
+}
 
+function printfirst(cfg, first) {
+    const di = document.getElementById("firstdiv")
+    di.innerHTML = ``
+    const h = document.createElement("h5")
+    h.innerHTML = "First"
+    di.appendChild(h)
+    const d = document.createElement("table");
+    for(production of cfg) {
+        const tr = document.createElement("tr")
+        const td1 = document.createElement("td")
+        const td2 = document.createElement("td")
+        td1.innerHTML = production[0]
+        s = "{"
+        c = 0
+        for(x of first[production[0]]) {
+            s += x
+            if(c < first[production[0]].size - 1) {
+                s += ", "
+            }
+            c += 1
+        }
+        s += "}"
+        td2.innerHTML = s
+        tr.appendChild(td1)
+        tr.appendChild(td2)
+        d.appendChild(tr)
+        di.appendChild(d)
+    }
+}
+
+function printfollow(cfg, follow) {
+    const di = document.getElementById("followdiv")
+    di.innerHTML = ``
+    const h = document.createElement("h5")
+    h.innerHTML = "Follow"
+    di.appendChild(h)
+    const d = document.createElement("table");
+    for(production of cfg) {
+        const tr = document.createElement("tr")
+        const td1 = document.createElement("td")
+        const td2 = document.createElement("td")
+        td1.innerHTML = production[0]
+        s = "{"
+        c = 0
+        for(x of follow[production[0]]) {
+            s += x
+            if(c < follow[production[0]].size - 1) {
+                s += ", "
+            }
+            c += 1
+        }
+        s += "}"
+        td2.innerHTML = s
+        tr.appendChild(td1)
+        tr.appendChild(td2)
+        d.appendChild(tr)
+        di.appendChild(d)
+    }
+}
 
 // ---------------------------- PARSE STRING -------------------------
 
 function parse_string(s) {
     d = document.getElementById("productions")
     d.innerHTML = ``
-    console.log(d.childNodes)
 
     i = 0
     f = 0
@@ -265,39 +346,21 @@ function parse_string(s) {
     did = 0
     drawStart(start, did)
     did += 1
-    productiony = 0
     while(i < s.length && stack.length > 0) {
         ch = stack.pop()
         chdid = didStack.pop()
         if(isTerminal(ch)) {
             if(ch == s[i]) {
-                if(ch != '$') {
-                    // colorCircle(ch, p[0], p[1], BLUE)
-                }
                 i = i + 1
             } else if(ch != 'e') {
-                if(ch != '$') {
-                   // colorCircle(ch, p[0], p[1], RED)
-                }
                 document.getElementById(chdid).a.div.div.style.background = "red";
-                printReject()
-                console.log('String is not accepted')
                 f = 1
                 break
-            } else {
-                // colorCircle(ch, p[0], p[1], true)
-            }
+            } 
         } else {
             t = table[ch + s[i]]
             printProduction(ch + "->" + t)
-            //displayMsg(ch + "->" + t, 1000, 50 + productiony)
-            productiony += 30
-            //colorCircle(ch, p[0], p[1], RED)
-            //drawDerive(t, p[0], p[1], p[2])
-            //colorCircle(ch, p[0], p[1], WHITE)
             if(t.length == 0) {
-                printReject()
-                console.log('String is not accepted')
                 f = 1
                 break
             }
@@ -314,20 +377,16 @@ function parse_string(s) {
             // console.log(ch, s[i], stack)
         }
     }
-    if(f == 0) {    
+    if(f == 0 && i == s.length && stack.length == 0) {    
         printAccept()
         console.log('String is accepted')
-    }
-    if(f == 1) {
+    } else {
         printReject()
-        return
-    }  
-    printAccept()
-    // displayMsg(msg, 500, 500)
+        console.log('String is not accepted')
+    }
 }
 
 function parse(cfg, s, start) {
-
     window.first = {}
     window.vis = {}
     window.derives = {}
@@ -338,10 +397,9 @@ function parse(cfg, s, start) {
 
     cfg.pop()
 
-    console.log(cfg)
-
     // REMOVE LEFT RECURSION
     cfg = removeLeftRecursion(cfg)
+    printcfg(cfg);
 
 
     // CALCULATE FIRST
@@ -370,6 +428,7 @@ function parse(cfg, s, start) {
         }
         first[production[0]] = getFirst(production[0])
     }
+    printfirst(cfg, first)
     // for(production of cfg) {
     //     console.log(production[0], first[production[0]])
     // }
@@ -392,6 +451,7 @@ function parse(cfg, s, start) {
         getFollow(ch)
         // console.log(ch, follow[ch])
     }
+    printfollow(cfg, follow)
 
 
     // MAKE PARSE TABLE
@@ -472,7 +532,6 @@ function createTable() {
     button.className = 'btn btn-info d-block mx-auto my-3';
     button.onclick = function() {
         getProductions();
-        console.log(cfg, s)
         parse(cfg, s, start);
         return
     }
